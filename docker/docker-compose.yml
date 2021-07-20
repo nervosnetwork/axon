@@ -1,0 +1,23 @@
+version: "3.3"
+services:
+  ckb:
+    networks:
+      - axondev-bridge
+    image: axondev/ckb:v0.1.0
+    ports:
+      - "8114:8114"
+      - "8115:8115"
+  ckb-indexer:
+    networks:
+      - axondev-bridge
+    image: axondev/ckb-indexer:v0.1.0
+    ports:
+      - "8116:8116"
+    environment:
+      - RUST_LOG=info
+      - CKB_URI=http://ckb:8114
+    depends_on:
+      - ckb
+networks:
+  axondev-bridge:
+    driver: bridge

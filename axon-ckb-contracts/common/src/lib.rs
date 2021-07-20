@@ -2,12 +2,17 @@
 
 use ckb_std::ckb_constants::Source;
 use ckb_std::high_level::{load_cell_data, load_cell_type, load_cell_type_hash};
+
 use common_raw::{cell::global_config::GlobalConfigCellData, FromRaw};
 
+#[cfg(not(gcc_type_hash))]
 pub const GLOBAL_CONFIG_TYPE_HASH: [u8; 32] = [
     176, 130, 158, 213, 216, 232, 219, 162, 15, 11, 163, 122, 141, 76, 148, 76, 101, 99, 218, 109, 18, 206, 47, 118, 31, 150, 20, 57, 223,
     195, 32, 204,
 ];
+
+#[cfg(gcc_type_hash)]
+pub const GLOBAL_CONFIG_TYPE_HASH: [u8; 32] = include!("../../target/global_config_type_hash");
 
 pub fn check_global_cell() -> Option<GlobalConfigCellData> {
     let global_config_data = (0..)

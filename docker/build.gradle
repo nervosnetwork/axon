@@ -1,0 +1,11 @@
+description 'docker tool'
+
+task dcup(type: Exec) {
+    setWorkingDir project.file('.')
+    commandLine 'docker-compose', '-f', 'docker-compose.yml', 'up', '--detach'
+}
+
+task dcdown(type: Exec) {
+    setWorkingDir project.file('.')
+    commandLine 'docker-compose', '-f', 'docker-compose.yml', 'down'
+}

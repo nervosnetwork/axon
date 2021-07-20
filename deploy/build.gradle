@@ -1,0 +1,48 @@
+
+plugins {
+    id 'java'
+    id 'com.github.sherter.google-java-format' version '0.8'
+}
+
+description 'deploy tool'
+
+compileJava.dependsOn(tasks.googleJavaFormat)
+verifyGoogleJavaFormat.mustRunAfter(tasks.googleJavaFormat)
+googleJavaFormat {
+    options style: 'AOSP'
+}
+
+dependencies {
+    //this strange example contains ckb-indexer json rpc api, ridiculous
+    implementation 'org.nervos.ckb:example:0.42.0'
+    implementation 'org.nervos.ckb:ckb:0.42.0'
+    implementation 'org.nervos.ckb:utils:0.42.0'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.10.0'
+
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.20'
+
+    //implementation group: 'commons-codec', name: 'commons-codec', version: '1.15'
+}
+
+
+
+
+task deployCkbContractsGCC(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main =  "org.nervos.axon.DeployGlobalConfigCell"
+    args 'http://localhost:8114', 'http://localhost:8116', project.getParent().file('axon-ckb-contracts/target/global_config_type_hash')
+}
+
+task buildWithGivenGCCTypeId(type: Exec){
+    File axonCkbContractsPath = project.getParent().file('axon-ckb-contracts/')
+    workingDir(axonCkbContractsPath)
+    commandLine "capsule","build"
+}
+
+task deployCkbContracts(type: JavaExec){
+    classpath = sourceSets.main.runtimeClasspath
+    main =  "org.nervos.axon.DeployCells"
+    args 'http://localhost:8114', 'http://localhost:8116',project.getParent().file('axon-ckb-contracts/build/debug')
+}

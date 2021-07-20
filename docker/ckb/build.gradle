@@ -1,0 +1,13 @@
+plugins {
+    id 'com.palantir.docker' version '0.26.0'
+}
+
+description 'docker tool'
+
+
+docker {
+    name 'axondev/ckb:v0.1.0'
+    dockerfile project.file('Dockerfile')
+    files 'dev.toml', 'entrypoint.sh'
+}
+

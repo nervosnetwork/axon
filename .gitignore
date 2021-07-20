@@ -19,3 +19,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # TypeScript cache
 *.tsbuildinfo
 lib
+
+.gradle
+# Ignore Gradle build output directory
+build
