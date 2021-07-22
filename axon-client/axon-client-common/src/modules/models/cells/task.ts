@@ -48,7 +48,6 @@ export class Task implements CellInputType, CellOutputType {
   checkDataSize: bigint;
   refreshInterval: bigint;
   mode: bigint;
-  assignedCheckerAddress: string;
 
   outPoint: OutPoint;
 
@@ -62,7 +61,6 @@ export class Task implements CellInputType, CellOutputType {
     checkDataSize: bigint,
     refreshInterval: bigint,
     mode: bigint,
-    assignedCheckerAddress: string,
     outPoint: OutPoint,
   ) {
     this.capacity = capacity;
@@ -74,7 +72,6 @@ export class Task implements CellInputType, CellOutputType {
     this.checkDataSize = checkDataSize;
     this.refreshInterval = refreshInterval;
     this.mode = mode;
-    this.assignedCheckerAddress = assignedCheckerAddress;
     this.outPoint = outPoint;
   }
 
@@ -92,17 +89,17 @@ export class Task implements CellInputType, CellOutputType {
     }
     const capacity = BigInt(cell.cell_output.capacity);
 
+    const type_args = cell.cell_output.type!.args.substring(2);
     const data = cell.data.substring(2);
 
-    const chainId = leHexToBigIntUint8(data.substring(0, 2));
-    const version = leHexToBigIntUint8(data.substring(2, 4));
-    const checkBlockHeightFrom = leHexToBigIntUint128(data.substring(4, 36));
-    const checkBlockHeightTo = leHexToBigIntUint128(data.substring(36, 68));
-    const checkBlockHashTo = data.substring(68, 132);
-    const checkDataSize = leHexToBigIntUint128(data.substring(132, 164));
-    const refreshInterval = leHexToBigIntUint16(data.substring(164, 196));
-    const mode = leHexToBigIntUint8(data.substring(196, 198));
-    const assignedCheckerAddress = data.substring(198, 238);
+    const chainId = leHexToBigIntUint8(type_args.substring(0, 2));
+    const version = leHexToBigIntUint8(data.substring(0, 2));
+    const checkBlockHeightFrom = leHexToBigIntUint128(data.substring(2, 34));
+    const checkBlockHeightTo = leHexToBigIntUint128(data.substring(34, 66));
+    const checkBlockHashTo = data.substring(66, 130);
+    const checkDataSize = leHexToBigIntUint128(data.substring(139, 162));
+    const refreshInterval = leHexToBigIntUint16(data.substring(162, 194));
+    const mode = leHexToBigIntUint8(data.substring(194, 196));
     const outPoint = cell.out_point!;
 
     return new Task(
@@ -115,13 +112,12 @@ export class Task implements CellInputType, CellOutputType {
       checkDataSize,
       refreshInterval,
       mode,
-      assignedCheckerAddress,
       outPoint,
     );
   }
 
   static default(): Task {
-    return new Task(0n, 0n, 0n, 0n, 0n, ``, 0n, 0n, 0n, ``, defaultOutPoint());
+    return new Task(0n, 0n, 0n, 0n, 0n, ``, 0n, 0n, 0n, defaultOutPoint());
   }
 
   toCellInput(): CKBComponents.CellInput {

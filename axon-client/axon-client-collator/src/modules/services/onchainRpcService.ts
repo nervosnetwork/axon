@@ -10,9 +10,11 @@ export default class OnchainRpcService implements RpcService {
   #client: Rpc;
 
   // @ts-expect-error Unused
+  // istanbul ignore next
   #info = (msg: string) => {
     logger.info(`RpcService: ${msg}`);
   };
+  // istanbul ignore next
   #error = (msg: string) => {
     logger.error(`RpcService: ${msg}`);
   };

@@ -39,12 +39,13 @@ export class CheckerInfo implements CellInputType, CellOutputType {
   capacity: bigint;
 
   chainId: bigint;
+  checkerPublicKeyHash: string;
+
   checkId: bigint;
   unpaidFee: bigint;
   rpcUrl: string;
-  checkerPublicKeyHash: string;
   mode: bigint;
-
+  unpaidCheckDataSize: bigint;
   outPoint: OutPoint;
 
   //type args for lumos
@@ -54,20 +55,24 @@ export class CheckerInfo implements CellInputType, CellOutputType {
   constructor(
     capacity: bigint,
     chainId: bigint,
+    checkerPublicKeyHash: string,
     checkId: bigint,
     unpaidFee: bigint,
     rpcUrl: string,
-    checkerPublicKeyHash: string,
     mode: bigint,
+    unpaidCheckDataSize: bigint,
     outPoint: OutPoint,
   ) {
     this.capacity = capacity;
+
     this.chainId = chainId;
+    this.checkerPublicKeyHash = checkerPublicKeyHash;
+
     this.checkId = checkId;
     this.unpaidFee = unpaidFee;
     this.rpcUrl = rpcUrl;
-    this.checkerPublicKeyHash = checkerPublicKeyHash;
     this.mode = mode;
+    this.unpaidCheckDataSize = unpaidCheckDataSize;
     this.outPoint = outPoint;
   }
 
@@ -86,21 +91,33 @@ export class CheckerInfo implements CellInputType, CellOutputType {
     const capacity = BigInt(cell.cell_output.capacity);
 
     const data = cell.data.substring(2);
+    const lock_args = cell.cell_output.lock.args.substring(2);
 
-    const chainId = leHexToBigIntUint8(data.substring(0, 2));
-    const checkId = leHexToBigIntUint8(data.substring(2, 4));
-    const unpaidFee = leHexToBigIntUint128(data.substring(4, 68));
-    const rpcUrl = data.substring(68, 1092);
-    const checkerPublicKeyHash = data.substring(1092, 1132);
-    const mode = leHexToBigIntUint8(data.substring(1132, 1134));
+    const chainId = leHexToBigIntUint8(lock_args.substring(0, 2));
+    const checkerPublicKeyHash = cell.cell_output.lock.args.substring(2, 42);
 
+    const checkId = leHexToBigIntUint8(data.substring(0, 2));
+    const unpaidFee = leHexToBigIntUint128(data.substring(2, 34));
+    const rpcUrl = data.substring(34, 1058);
+    const mode = leHexToBigIntUint8(data.substring(1058, 1060));
+    const unpaidCheckDataSize = leHexToBigIntUint128(data.substring(1060, 1092));
     const outPoint = cell.out_point!;
 
-    return new CheckerInfo(capacity, chainId, checkId, unpaidFee, rpcUrl, checkerPublicKeyHash, mode, outPoint);
+    return new CheckerInfo(
+      capacity,
+      chainId,
+      checkerPublicKeyHash,
+      unpaidFee,
+      checkId,
+      rpcUrl,
+      mode,
+      unpaidCheckDataSize,
+      outPoint,
+    );
   }
 
   static default(): CheckerInfo {
-    return new CheckerInfo(0n, 0n, 0n, 0n, ``, ``, 0n, defaultOutPoint());
+    return new CheckerInfo(0n, 0n, ``, 0n, 0n, ``, 0n, 0n, defaultOutPoint());
   }
 
   toCellInput(): CKBComponents.CellInput {
@@ -125,10 +142,10 @@ export class CheckerInfo implements CellInputType, CellOutputType {
   }
 
   toCellOutputData(): string {
-    return `${Uint8BigIntToLeHex(this.chainId)}${remove0xPrefix(Uint8BigIntToLeHex(this.checkId))}${remove0xPrefix(
+    return `$0x{remove0xPrefix(Uint8BigIntToLeHex(this.checkId))}${remove0xPrefix(
       Uint128BigIntToLeHex(this.unpaidFee),
-    )}${remove0xPrefix(this.rpcUrl)}${remove0xPrefix(this.checkerPublicKeyHash)}${remove0xPrefix(
-      Uint8BigIntToLeHex(this.mode),
+    )}${remove0xPrefix(this.rpcUrl)}${remove0xPrefix(Uint8BigIntToLeHex(this.mode))}${remove0xPrefix(
+      Uint128BigIntToLeHex(this.unpaidCheckDataSize),
     )}`;
   }
 

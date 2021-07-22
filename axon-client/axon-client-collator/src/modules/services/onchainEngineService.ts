@@ -16,6 +16,7 @@ import { CollatorRefreshTaskTransformation } from "axon-client-common/src/module
 import { CollatorRefreshTaskWitness } from "axon-client-common/src/modules/models/witnesses/collator_refresh_task_witness";
 import { logger } from "axon-client-common/src/utils/logger";
 import EngineService from "./engineService";
+import { defaultOutPoint, Uint128BigIntToLeHex } from "axon-client-common/src/utils/tools";
 
 @injectable()
 export default class OnchainEngineService implements EngineService {
@@ -24,10 +25,12 @@ export default class OnchainEngineService implements EngineService {
   readonly #rpcService: RpcService;
 
   // @ts-expect-error Unused
+  // istanbul ignore next
   #info = (outpoint: string, msg: string) => {
     logger.info(`EngineService: ${msg}`);
   };
   // @ts-expect-error Unused
+  // istanbul ignore next
   #error = (outpoint: string, msg: string) => {
     logger.error(`EngineService: ${msg}`);
   };
@@ -46,20 +49,22 @@ export default class OnchainEngineService implements EngineService {
     //assume all cell is genuine
 
     //get info from crossChainService
-    const [latestBlockHeight, latestBlockHash] = await this.#crossChainService.getCrossChainInfo();
+    const [latestBlockHeight, latestBlockHash, checkSize] = await this.#crossChainService.getCrossChainInfo();
 
     //do state transfer work
-    if (xfer.depConfig.checkerTotalCount < xfer.depConfig.checkerThreshold) {
-      xfer.skip = true;
-      return;
-    }
-
     xfer.inputState.latestBlockHeight = latestBlockHeight;
     xfer.inputState.latestBlockHash = latestBlockHash;
     xfer.inputState.status = SidechainState.STATUS_WAITING_FOR_SUBMIT;
 
+    if (
+      xfer.depConfig.checkerTotalCount < xfer.depConfig.checkerThreshold ||
+      xfer.depBond.unlockSidechainHeight < xfer.inputState.latestBlockHeight
+    ) {
+      xfer.skip = true;
+      return;
+    }
+
     const bond = 10n;
-    xfer.inputBond.unlockSidechainHeight = latestBlockHeight;
 
     const tasks: Array<Task> = [];
 
@@ -68,7 +73,19 @@ export default class OnchainEngineService implements EngineService {
     //the online version should adopt pseudo-random
 
     for (let i = 0; i < xfer.depConfig.commitThreshold; i++) {
-      const task = Task.default();
+      const capacity = 1000n;
+      const task = new Task(
+        capacity,
+        xfer.inputState.chainId,
+        xfer.inputState.version,
+        xfer.inputState.committedBlockHeight + 1n,
+        xfer.inputState.latestBlockHeight,
+        xfer.inputState.latestBlockHash,
+        checkSize,
+        xfer.depConfig.refreshInterval,
+        0n,
+        defaultOutPoint(),
+      );
       tasks.push(task);
     }
 
@@ -88,24 +105,20 @@ export default class OnchainEngineService implements EngineService {
     //assume all cell is genuine
 
     //do state transfer work
-    if (xfer.depConfig.checkerTotalCount < xfer.depConfig.checkerThreshold) {
-      xfer.skip = true;
-      return;
-    }
-
-    for (const checkerInfo of xfer.inputCheckInfos) {
-      if (checkerInfo.mode !== CheckerInfo.TASK_PASSED) {
-        throw new Error(`~~`);
-      }
-    }
-
     xfer.inputState.committedBlockHeight = xfer.inputState.latestBlockHeight;
     xfer.inputState.committedBlockHash = xfer.inputState.latestBlockHash;
     xfer.inputState.status = SidechainState.STATUS_WAITING_FOR_PUBLISH;
 
-    const fee = 10n * BigInt(xfer.inputCheckInfos.length);
-    const feePerChecker = 10n;
+    const checkSize = xfer.inputCheckInfos[0].unpaidCheckDataSize;
+    const feePerChecker = xfer.depConfig.checkFeeRate * checkSize;
+    const fee = xfer.depConfig.commitThreshold * feePerChecker;
+
     xfer.inputFee.museAmount += fee;
+
+    if (xfer.depConfig.commitThreshold !== BigInt(xfer.inputCheckInfos.length)) {
+      xfer.skip = true;
+      return;
+    }
 
     for (const checkerInfo of xfer.inputCheckInfos) {
       checkerInfo.mode = CheckerInfo.CHECKER_IDLE;
@@ -125,44 +138,61 @@ export default class OnchainEngineService implements EngineService {
     //assume all cell is genuine
 
     //do state transfer work
-    if (xfer.inputConfig.checkerTotalCount < xfer.inputConfig.checkerThreshold) {
-      xfer.skip = true;
-      return;
-    }
-
-    for (const checkerInfo of xfer.inputCheckInfos) {
-      if (checkerInfo.mode !== CheckerInfo.CHALLENGE_PASSED || checkerInfo.mode !== CheckerInfo.CHALLENGE_REJECTED) {
-        throw new Error(`~~`);
-      }
-    }
-
     xfer.inputState.committedBlockHeight = xfer.inputState.latestBlockHeight;
     xfer.inputState.committedBlockHash = xfer.inputState.latestBlockHash;
     xfer.inputState.status = SidechainState.STATUS_WAITING_FOR_PUBLISH;
 
-    const fee = 10n * BigInt(xfer.inputCheckInfos.length);
-    const feePerChecker = 10n;
-    xfer.inputFee.museAmount += fee;
+    const unpaidCheckDataSize = xfer.inputCheckInfos[0].unpaidCheckDataSize;
+    const validCheckerInfo: CheckerInfo[] = [];
+    const unValidCheckerInfo: CheckerInfo[] = [];
+    let taskCount = 0n;
+    let validChallengeCount = 0n;
+    let invalidChallengeCount = 0n;
 
+    let punishCheckerBitmap = 0n;
     for (const checkerInfo of xfer.inputCheckInfos) {
-      checkerInfo.mode = CheckerInfo.CHECKER_IDLE;
+      if (checkerInfo.mode === CheckerInfo.TASK_PASSED) {
+        taskCount += 1n;
+        checkerInfo.mode = CheckerInfo.CHECKER_IDLE;
+        validCheckerInfo.push(checkerInfo);
+      } else if (checkerInfo.mode === CheckerInfo.CHALLENGE_PASSED) {
+        validChallengeCount += 1n;
+        checkerInfo.mode = CheckerInfo.CHECKER_IDLE;
+        validCheckerInfo.push(checkerInfo);
+      } else {
+        punishCheckerBitmap += checkerInfo.checkId;
+        invalidChallengeCount += 1n;
+        unValidCheckerInfo.push(checkerInfo);
+      }
     }
 
-    // do logic to find out who are byzantine
-    const punishCheckerBitmap = ``;
+    const challenge_count = (xfer.inputConfig.commitThreshold - taskCount) * xfer.inputConfig.challengeThreshold;
+    if (
+      challenge_count !== validChallengeCount + invalidChallengeCount ||
+      taskCount + validChallengeCount <= invalidChallengeCount
+    ) {
+      xfer.skip = true;
+      return;
+    }
+
+    xfer.inputCheckInfos = validCheckerInfo.concat(unValidCheckerInfo);
+    const feePerChecker = unpaidCheckDataSize * xfer.inputConfig.checkFeeRate;
+    const fee = (taskCount + validChallengeCount) * feePerChecker;
+    xfer.inputFee.museAmount += fee;
 
     xfer.patternTypeWitness = new CollatorSubmitChallengeWitness(
       xfer.inputConfig.chainId,
       fee,
       feePerChecker,
-      punishCheckerBitmap,
+      Uint128BigIntToLeHex(punishCheckerBitmap).slice(2),
+      taskCount,
+      validChallengeCount,
     );
 
     xfer.processed = true;
     //compose tx
 
     await this.#transactionService.composeTransaction(xfer);
-
     await this.#rpcService.sendTransaction(xfer.composedTx!);
   };
 

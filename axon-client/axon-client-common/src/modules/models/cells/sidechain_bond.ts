@@ -105,6 +105,16 @@ export class SidechainBond implements CellInputType, CellOutputType {
     };
   }
 
+  toCellDep(): CKBComponents.CellDep {
+    return {
+      outPoint: {
+        txHash: this.outPoint.tx_hash,
+        index: this.outPoint.index,
+      },
+      depType: "code",
+    };
+  }
+
   toCellOutputData(): string {
     return `${Uint128BigIntToLeHex(this.sudtAmount)}`;
   }

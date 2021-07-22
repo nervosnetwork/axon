@@ -3,11 +3,13 @@ import {
   defaultOutPoint,
   leHexToBigIntUint128,
   leHexToBigIntUint16,
+  leHexToBigIntUint32,
   leHexToBigIntUint8,
   remove0xPrefix,
   Uint128BigIntToLeHex,
   Uint16BigIntToLeHex,
   Uint64BigIntToLeHex,
+  Uint32BigIntToLeHex,
   Uint8BigIntToLeHex,
 } from "../../../utils/tools";
 import { CellOutputType } from "./interfaces/cell_output_type";
@@ -53,7 +55,7 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
   updateInterval: bigint;
   minimalBond: bigint;
   checkerDataSizeLimit: bigint;
-  checkerPrice: bigint;
+  checkFeeRate: bigint;
   refreshInterval: bigint;
   commitThreshold: bigint;
   challengeThreshold: bigint;
@@ -72,7 +74,7 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
     updateInterval: bigint,
     minimalBond: bigint,
     checkerDataSizeLimit: bigint,
-    checkerPrice: bigint,
+    checkFeeRate: bigint,
     refreshInterval: bigint,
     commitThreshold: bigint,
     challengeThreshold: bigint,
@@ -89,7 +91,7 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
     this.updateInterval = updateInterval;
     this.minimalBond = minimalBond;
     this.checkerDataSizeLimit = checkerDataSizeLimit;
-    this.checkerPrice = checkerPrice;
+    this.checkFeeRate = checkFeeRate;
     this.refreshInterval = refreshInterval;
     this.commitThreshold = commitThreshold;
     this.challengeThreshold = challengeThreshold;
@@ -114,21 +116,23 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
     const capacity = BigInt(cell.cell_output.capacity);
 
     const data = cell.data.substring(2);
+    const typeArgs = cell.cell_output.type!.args.substring(2);
 
-    const chainId = leHexToBigIntUint8(data.substring(0, 2));
-    const checkerTotalCount = leHexToBigIntUint8(data.substring(2, 4));
-    const checkerBitmap = data.substring(4, 68);
-    const checkerThreshold = leHexToBigIntUint8(data.substring(68, 70));
-    const updateInterval = leHexToBigIntUint16(data.substring(70, 74));
-    const minimalBond = leHexToBigIntUint128(data.substring(74, 106));
-    const checkerDataSizeLimit = leHexToBigIntUint128(data.substring(106, 138));
-    const checkerPrice = leHexToBigIntUint128(data.substring(138, 170));
-    const refreshInterval = leHexToBigIntUint16(data.substring(170, 174));
-    const commitThreshold = leHexToBigIntUint8(data.substring(174, 176));
-    const challengeThreshold = leHexToBigIntUint8(data.substring(176, 178));
-    const adminPublicKey = data.substring(178, 242);
-    const collatorPublicKey = data.substring(242, 306);
-    const bondSudtTypeHash = data.substring(306, 370);
+    const chainId = leHexToBigIntUint8(typeArgs.substring(0, 2));
+
+    const checkerTotalCount = leHexToBigIntUint8(data.substring(0, 2));
+    const checkerBitmap = data.substring(2, 66);
+    const checkerThreshold = leHexToBigIntUint8(data.substring(66, 68));
+    const updateInterval = leHexToBigIntUint16(data.substring(68, 72));
+    const minimalBond = leHexToBigIntUint128(data.substring(72, 104));
+    const checkerDataSizeLimit = leHexToBigIntUint128(data.substring(104, 136));
+    const checkFeeRate = leHexToBigIntUint32(data.substring(136, 144));
+    const refreshInterval = leHexToBigIntUint16(data.substring(144, 148));
+    const commitThreshold = leHexToBigIntUint8(data.substring(148, 150));
+    const challengeThreshold = leHexToBigIntUint8(data.substring(150, 152));
+    const adminPublicKey = data.substring(152, 192);
+    const collatorPublicKey = data.substring(192, 232);
+    const bondSudtTypeHash = data.substring(232, 296);
 
     const outPoint = cell.out_point!;
 
@@ -141,7 +145,7 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
       updateInterval,
       minimalBond,
       checkerDataSizeLimit,
-      checkerPrice,
+      checkFeeRate,
       refreshInterval,
       commitThreshold,
       challengeThreshold,
@@ -192,7 +196,7 @@ export class SidechainConfig implements CellInputType, CellOutputType, CellDepTy
     )}${remove0xPrefix(Uint16BigIntToLeHex(this.updateInterval))}${remove0xPrefix(
       Uint128BigIntToLeHex(this.minimalBond),
     )}${remove0xPrefix(Uint128BigIntToLeHex(this.checkerDataSizeLimit))}${remove0xPrefix(
-      Uint128BigIntToLeHex(this.checkerPrice),
+      Uint32BigIntToLeHex(this.checkFeeRate),
     )}${remove0xPrefix(Uint16BigIntToLeHex(this.refreshInterval))}${remove0xPrefix(
       Uint8BigIntToLeHex(this.commitThreshold),
     )}${remove0xPrefix(Uint8BigIntToLeHex(this.challengeThreshold))}${remove0xPrefix(

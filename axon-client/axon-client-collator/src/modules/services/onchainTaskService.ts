@@ -71,24 +71,20 @@ export default class OnchainTaskService implements TaskService {
     if (state.status == SidechainState.STATUS_WAITING_FOR_PUBLISH) {
       const bond = await this.#scanService.scanSidechainBond();
 
-      const xfer = new CollatorPublishTaskTransformation(globalConfig, config, code, state, bond);
+      const xfer = new CollatorPublishTaskTransformation(globalConfig, config, bond, code, state);
 
       await this.#engineService.collatorPublishTask(xfer);
     } else if (state.status == SidechainState.STATUS_WAITING_FOR_SUBMIT) {
       //if the interval is timed out, do refresh
       //if()
 
-      const tasks = await this.#scanService.scanTask();
+      const [checkerInfos, fee] = await Promise.all([this.#scanService.scanCheckerInfo(), this.#scanService.scanFee()]);
 
-      if (tasks.some((task) => task.mode === Task.CHALLENGE)) {
-        const fee = await this.#scanService.scanFee();
-        const checkerInfos = await this.#scanService.scanCheckerInfo();
+      if (checkerInfos.some((checkerInfo) => checkerInfo.mode === Task.CHALLENGE)) {
         const xfer = new CollatorSubmitChallengeTransformation(globalConfig, code, config, state, fee, checkerInfos);
 
         await this.#engineService.collatorSubmitChallenge(xfer);
       } else {
-        const fee = await this.#scanService.scanFee();
-        const checkerInfos = await this.#scanService.scanCheckerInfo();
         const xfer = new CollatorSubmitTaskTransformation(globalConfig, config, code, state, fee, checkerInfos);
         await this.#engineService.collatorSubmitTask(xfer);
       }

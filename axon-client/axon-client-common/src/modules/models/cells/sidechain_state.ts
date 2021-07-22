@@ -94,8 +94,11 @@ export class SidechainState implements CellInputType, CellOutputType, CellDepTyp
     const latestBlockHash = data.substring(36, 100);
     const committedBlockHeight = leHexToBigIntUint128(data.substring(100, 132));
     const committedBlockHash = data.substring(132, 196);
-    const status = leHexToBigIntUint8(data.substring(196, 198));
 
+    let status: bigint = this.STATUS_WAITING_FOR_SUBMIT;
+    if (latestBlockHeight === committedBlockHeight) {
+      status = this.STATUS_WAITING_FOR_PUBLISH;
+    }
     const outPoint = cell.out_point!;
 
     return new SidechainState(

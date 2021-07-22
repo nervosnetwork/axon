@@ -70,22 +70,28 @@ export class CollatorSubmitChallengeTransformation implements Transformation {
   }
 
   toCellOutput(): Array<CKBComponents.CellOutput> {
+    const checkerInfoOutputs: CheckerInfo[] = this.inputCheckInfos.filter(
+      (checkerInfo) => checkerInfo.mode === CheckerInfo.CHECKER_IDLE,
+    );
     return [
       this.inputCode.toCellOutput(),
       this.inputConfig.toCellOutput(),
       this.inputState.toCellOutput(),
       this.inputFee.toCellOutput(),
-      ...this.inputCheckInfos.map((ci) => ci.toCellOutput()),
+      ...checkerInfoOutputs.map((ci) => ci.toCellOutput()),
     ];
   }
 
   toCellOutputData(): Array<string> {
+    const checkerInfoOutputs: CheckerInfo[] = this.inputCheckInfos.filter(
+      (checkerInfo) => checkerInfo.mode === CheckerInfo.CHECKER_IDLE,
+    );
     return [
       this.inputCode.toCellOutputData(),
       this.inputConfig.toCellOutputData(),
       this.inputState.toCellOutputData(),
       this.inputFee.toCellOutputData(),
-      ...this.inputCheckInfos.map((ci) => ci.toCellOutputData()),
+      ...checkerInfoOutputs.map((ci) => ci.toCellOutputData()),
     ];
   }
 

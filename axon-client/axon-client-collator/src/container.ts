@@ -1,12 +1,3 @@
-import { Container } from "inversify";
-
-import OnchainCrossChainService from "./modules/services/onchainCrossChainService";
-import OnchainEngineService from "./modules/services/onchainEngineService";
-import OnchainRpcService from "./modules/services/onchainRpcService";
-import OnchainScanService from "./modules/services/onchainScanService";
-import OnchainTaskService from "./modules/services/onchainTaskService";
-import OnchainTransactionService from "./modules/services/onchainTransactionService";
-
 export const modules: Record<string, symbol> = {
   CrossChainService: Symbol("CrossChainService"),
   EngineService: Symbol("EngineService"),
@@ -15,6 +6,15 @@ export const modules: Record<string, symbol> = {
   TaskService: Symbol("TaskService"),
   TransactionService: Symbol("TransactionService"),
 };
+
+import { Container } from "inversify";
+
+import OnchainCrossChainService from "./modules/services/onchainCrossChainService";
+import OnchainEngineService from "./modules/services/onchainEngineService";
+import OnchainRpcService from "./modules/services/onchainRpcService";
+import OnchainScanService from "./modules/services/onchainScanService";
+import OnchainTaskService from "./modules/services/onchainTaskService";
+import OnchainTransactionService from "./modules/services/onchainTransactionService";
 
 export const container = new Container({ defaultScope: "Singleton" });
 

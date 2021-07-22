@@ -35,6 +35,11 @@ export const leHexToBigIntUint64 = (rawHexString: string): bigint => {
   return utils.readBigUInt64LE(prepare0xPrefix(rawHexString));
 };
 
+export const leHexToBigIntUint32 = (rawHexString: string): bigint => {
+  const buf = Buffer.from(prepare0xPrefix(rawHexString).slice(2), "hex");
+  return BigInt(buf.readUInt32LE());
+};
+
 export const leHexToBigIntUint16 = (rawHexString: string): bigint => {
   const buf = Buffer.from(prepare0xPrefix(rawHexString).slice(2), "hex");
   return BigInt(buf.readUInt16LE());
@@ -57,6 +62,15 @@ export const Uint64BigIntToLeHex = (u64: bigint): string => {
     throw new Error(`Uint64BigIntToLeHex, input: ${u64}`);
   }
   return utils.toBigUInt64LE(u64);
+};
+
+export const Uint32BigIntToLeHex = (u32: bigint): string => {
+  if (u32 < 0) {
+    throw new Error(`Uint32BigIntToLeHex, input: ${u32}`);
+  }
+  const buf = Buffer.alloc(4);
+  buf.writeUInt32LE(Number(u32));
+  return `0x${buf.toString("hex")}`;
 };
 
 export const Uint16BigIntToLeHex = (u16: bigint): string => {
